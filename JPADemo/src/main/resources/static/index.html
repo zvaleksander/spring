@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="ISO-8859-1">
+	<title>Insert title here</title>
+	
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.7.1/css/bootstrap-datepicker.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.7.1/js/bootstrap-datepicker.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.7.1/locales/bootstrap-datepicker.es.min.js"></script>
+    
+    <style type="text/css">
+    	body {
+    		font-family: "Trebuchet MS";
+    		font-size  : 125%;
+    	}
+    	
+    	.datepicker-dropdown {
+    		top          : 0;
+			left         : 0;
+			padding      : 15px;
+			border-radius: 10px;
+			font-size    : 95%;
+		}
+    </style>
+    
+    <script type="text/javascript">
+    
+    	var page = 0;
+    	var size = 15;
+    	var total = 0;
+    	var selectedRow = null;
+    	
+    	var action = '';
+    	
+		var module = (function() {
+			
+			var _init = function() {
+				$.ajax({ 
+				   type: "GET",
+				   dataType: "json",
+				   url: "http://localhost:8080/personas/count",
+				   success: function(data) {
+					   total = Math.ceil(data/size) - 1;
+				   }
+				});
+			}
+			
+			var _load = function() {
+				console.log('page: ' + page + ', total: ' + total);
+				$.ajax({ 
+				   type: "GET",
+				   dataType: "json",
+				   url: "http://localhost:8080/personas/page-request?page=" + page + "&size=" + size,
+				   success: function(data) {
+					   console.log(JSON.stringify(data));
+					   $('#table').bootstrapTable("destroy");
+					   $('#table').bootstrapTable({
+					        data: data
+				    	});
+				   }
+				});
+			}
+			
+			var _add = function() {
+				var persona = {};
+				persona.nombres = $("#tbx_nombres").val();
+				persona.apellidos = $("#tbx_apellidos").val();
+				persona.fechaNacimiento = $("#tbx_fecha").val();
+				persona.telefono = $("#tbx_telefono").val();
+				persona.correo = $("#tbx_correo").val();
+				persona.estado = 'A';
+				
+				if(action == 'UPD') persona.id = selectedRow.id;
+				
+				/*
+				 * Content-Type is used by @RequestBody to determine what format the data being sent from the client in the request is. 
+				 * Accept is used by @ResponseBody to determine what format to sent the data back to the client in the response.
+				 */
+				$.ajax({ 
+					type: "POST",
+				   	dataType: "json",
+				   	data: JSON.stringify(persona),
+				   	url: "http://localhost:8080/personas/",
+				   	headers: { 
+				    	'Accept': 'application/json',
+				        'Content-Type': 'application/json' 
+				    },
+				   	success: function(data) {
+				   		$('#myModal').modal('hide');
+				   		selectedRow = null;
+				   		_init();
+						_load();
+				   	},
+				   	error: function(XMLHttpRequest, textStatus, errorThrown) {
+						alert(JSON.stringify(XMLHttpRequest));
+					}
+				});
+			}
+			
+			var _remove = function() {
+				if(selectedRow == null) alert('Error!');
+				else {
+					$.ajax({ 
+						type: "DELETE",
+					   	dataType: "json",
+					   	url: "http://localhost:8080/personas/" + selectedRow.id,
+					   	success: function(data) {
+					   		_init();
+							_load();
+					   	},
+					   	error: function(XMLHttpRequest, textStatus, errorThrown) {
+					   		console.log(JSON.stringify(XMLHttpRequest));
+						}
+					});
+				}
+			}
+			
+			var _search = function() {
+				if ($('#tbx_search').val() == '' || $('#tbx_search').val().length < 3) alert('Error!');
+				else {
+					$.ajax({ 
+					   type: "GET",
+					   dataType: "json",
+					   url: "http://localhost:8080/personas/nombre/" + $('#tbx_search').val(),
+					   success: function(data) {
+						   console.log(JSON.stringify(data));
+						   $('#table').bootstrapTable("destroy");
+						   $('#table').bootstrapTable({
+						        data: data
+					    	});
+					   }
+					});
+				}
+			}
+			
+			var _anterior = function() {
+				$('#tbx_search').val('');
+				
+				if(page == 0) alert('Error!');
+				else {					page -= 1;
+					_load();
+				}
+			}
+			
+			var _siguiente = function() {
+				$('#tbx_search').val('');
+				
+				if(page == total) alert('Error!');
+				else {
+					page += 1;
+					_load();
+				}
+			}
+			
+			var _buildDatepicker = function(instance) {
+				instance.datepicker({
+					autoclose: true,
+					todayHighlight: true,
+					language: 'es',
+					format: 'yyyy-mm-dd'
+				});
+			}
+			
+			var _dateFormat = function (value, row, index) {
+				return moment(value).format('YYYY-MM-DD');
+			}
+			
+			var _openModal = function() {
+				if(this.id == 'btn_agregar') {
+					action = 'ADD';
+					$('#myModal').modal('show');
+				}
+				else {
+					if(selectedRow == null) alert('Error!');
+					else {
+						$('#tbx_nombres').val(selectedRow.nombres);
+					    $('#tbx_apellidos').val(selectedRow.apellidos);
+					    $('#tbx_fecha').val(moment(selectedRow.fechaNacimiento).format('YYYY-MM-DD'));
+					    $('#tbx_telefono').val(selectedRow.telefono);
+					    $('#tbx_correo').val(selectedRow.correo);
+					    
+					    action = 'UPD';
+					    $('#myModal').modal('show');
+					}
+				}
+			}
+			
+			return {
+				init: _init,
+				load: _load,
+				add: _add,
+				search: _search,
+				remove: _remove,
+				anterior: _anterior,
+				siguiente: _siguiente,
+				buildDatepicker: _buildDatepicker,
+				dateFormat: _dateFormat,
+				openModal: _openModal
+			}
+		}());
+	
+		$(document).ready(function() {
+			module.init();
+			module.load();
+			module.buildDatepicker($('#tbx_fecha'));
+			
+			$('#table').on('check.bs.table', function (e, row) {
+				selectedRow = row;
+			  	console.log(JSON.stringify(selectedRow));
+			});
+			
+			$('#table').on('click', 'tr', function() {
+		        if ($(this).hasClass('selected') ) {
+		            $(this).removeClass('selected');
+		        }
+		        else {
+		            $('tr.selected').removeClass('selected');
+		            $(this).addClass('selected');
+		        }
+		    });
+			
+			$('#myModal').on('hidden.bs.modal', function () {
+			    $('#tbx_nombres').val('');
+			    $('#tbx_apellidos').val('');
+			    $('#tbx_fecha').val('');
+			    $('#tbx_telefono').val('');
+			    $('#tbx_correo').val('');
+			});
+			
+			$("#btn_confirmar").click(module.add);
+			$("#btn_eliminar").click(module.remove);
+			$("#btn_anterior").click(module.anterior);
+			$("#btn_siguiente").click(module.siguiente);
+			$("#btn_agregar").click(module.openModal);
+			$("#btn_modificar").click(module.openModal);
+			$("#btn_buscar").click(module.search);
+		});
+	</script>
+</head>
+<body>
+	<div class="container" style="margin-top: 5%">
+		<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h2>Mantenimiento de Personas</h2>
+			</div>
+			<div class="panel-body">
+				<div class="pull-left">
+					<div class="btn-group">
+						<button type="button" class="btn btn-primary" style="width: 100px" id="btn_agregar">Agregar</button>
+  						<button type="button" class="btn btn-primary" style="width: 100px" id="btn_modificar">Modificar</button>
+  						<button type="button" class="btn btn-primary" style="width: 100px" id="btn_eliminar">Eliminar</button>
+					</div>
+				</div>
+				<div class="pull-right">
+					<button type="button" class="btn btn-default" id="btn_buscar">
+      					<span class="glyphicon glyphicon-search"></span>
+    				</button>
+				</div>
+				<div class="pull-right">
+					<input type="text" class="form-control" placeholder="Nombres" style="width: 250px" id="tbx_search">
+				</div>
+				
+				<hr />
+				<table id="table" class="table table-condensed table-hovered">
+					<thead>
+		            	<tr>
+		            		<th data-field="state" data-radio="true"></th>
+		                	<th data-field="id">ID</th>
+		                	<th data-field="nombres">Nombre</th>
+		                	<th data-field="apellidos">Apellidos</th>
+		                	<th data-field="fechaNacimiento" data-formatter="module.dateFormat">Fecha de Nacimiento</th>
+		                	<th data-field="telefono">Teléfono</th>
+		                	<th data-field="correo">Correo Electrónico</th>
+		            	</tr>
+		        	</thead>
+	    		</table>
+	    		<br/>
+	    		<div class="pull-right">
+					<div class="btn-group">
+  						<button type="button" class="btn btn-primary" style="width: 100px" id="btn_anterior">Anterior</button>
+  						<button type="button" class="btn btn-primary" style="width: 100px" id="btn_siguiente">Siguiente</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	
+	<!-- Modal -->
+	<div id="myModal" class="modal fade" role="dialog">
+  		<div class="modal-dialog">
+
+    		<!-- Modal content-->
+    		<div class="modal-content">
+      			<div class="modal-header">
+        			<button type="button" class="close" data-dismiss="modal">&times;</button>
+        			<h4 class="modal-title">Registrar/Modificar Persona</h4>
+      			</div>
+      			<div class="modal-body">
+        			<form>
+        				<div class="row">
+	        				<div class="col-md-12 form-group">
+	    						<label for="tbx_nombres">Nombres</label>
+	    						<input type="text" class="form-control" id="tbx_nombres">
+	  						</div>
+        				</div>
+        				<div class="row">
+        					<div class="col-md-12 form-group">
+	    						<label for="tbx_apellidos">Apellidos</label>
+	    						<input type="text" class="form-control" id="tbx_apellidos">
+  							</div>
+        				</div>
+        				<div class="row">
+        					<div class="col-md-6 form-group">
+	    						<label for="tbx_fecha">Fecha de Nacimiento</label>
+	    						<input type="text" class="form-control" id="tbx_fecha">
+  							</div>
+  							<div class="col-md-6 form-group">
+	    						<label for="tbx_telefono">Teléfono</label>
+	    						<input type="text" class="form-control" id="tbx_telefono">
+  							</div>
+        				</div>
+        				<div class="row">
+        					<div class="col-md-12 form-group">
+	    						<label for="tbx_correo">Correo Electrónico</label>
+	    						<input type="text" class="form-control" id="tbx_correo">
+  							</div>
+        				</div>
+					</form>
+      			</div>
+      			<div class="modal-footer">
+        			<button type="button" class="btn btn-danger" style="width: 100px" data-dismiss="modal">Cancelar</button>
+        			<button type="button" class="btn btn-success" style="width: 100px" id="btn_confirmar">Confirmar</button>
+      			</div>
+    		</div>
+  		</div>
+	</div>
+</body>
+</html>
