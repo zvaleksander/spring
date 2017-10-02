@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,14 +18,41 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.demo.jpa.model.Persona;
+import com.demo.jpa.model.Usuario;
 import com.demo.jpa.repository.PersonaRepository;
+import com.demo.jpa.repository.UsuarioRepository;
+
+import io.swagger.annotations.ApiImplicitParam;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 public class WebController {
 
 	@Autowired
 	private PersonaRepository repository;
 	
+	@Autowired
+	private UsuarioRepository usuarioRepository;
+	
+	@RequestMapping(value = "/usuarios", method = RequestMethod.GET)
+	public List<Usuario> findAll() {
+		List<Usuario> collection = new ArrayList<Usuario>();
+		for (Usuario instance : usuarioRepository.findAll()) {
+			collection.add(instance);
+		}	
+		
+		return collection;
+	}
+	
+	@RequestMapping(value = "/usuarios", method = RequestMethod.POST)
+	public @ResponseBody Usuario login(@RequestBody Usuario instance) {
+		
+		Usuario usuario = usuarioRepository.findByUsernameAndPassword(instance.getUsername(), instance.getPassword());
+		
+		return usuario;
+	}
+	
+	@ApiImplicitParam(name = "page", dataType = "integer", paramType = "query")
 	@RequestMapping(value = "/personas/pageable", method = RequestMethod.GET)
 	public List<Persona> findAll(Pageable pageable) {
 		List<Persona> collection = new ArrayList<Persona>();

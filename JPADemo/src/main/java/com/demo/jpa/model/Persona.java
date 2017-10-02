@@ -25,6 +25,7 @@ public class Persona implements Serializable {
 	private String telefono;
 	private String correo;
 	private char estado;
+
 	
 	public Persona() {}
 	

@@ -36,7 +36,7 @@
     	var size = 15;
     	var total = 0;
     	var selectedRow = null;
-    	
+    	var server="192.168.70.24:8080";
     	var action = '';
     	
 		var module = (function() {
@@ -45,7 +45,7 @@
 				$.ajax({ 
 				   type: "GET",
 				   dataType: "json",
-				   url: "http://localhost:8080/personas/count",
+				   url: "http://" + server + "/personas/count",
 				   success: function(data) {
 					   total = Math.ceil(data/size) - 1;
 				   }
@@ -57,7 +57,7 @@
 				$.ajax({ 
 				   type: "GET",
 				   dataType: "json",
-				   url: "http://localhost:8080/personas/page-request?page=" + page + "&size=" + size,
+				   url: "http://" + server + "/personas/page-request?page=" + page + "&size=" + size,
 				   success: function(data) {
 					   console.log(JSON.stringify(data));
 					   $('#table').bootstrapTable("destroy");
@@ -87,7 +87,7 @@
 					type: "POST",
 				   	dataType: "json",
 				   	data: JSON.stringify(persona),
-				   	url: "http://localhost:8080/personas/",
+				   	url: "http://" + server + "/personas/",
 				   	headers: { 
 				    	'Accept': 'application/json',
 				        'Content-Type': 'application/json' 
@@ -110,7 +110,7 @@
 					$.ajax({ 
 						type: "DELETE",
 					   	dataType: "json",
-					   	url: "http://localhost:8080/personas/" + selectedRow.id,
+					   	url: "http://" + server + "/personas/" + selectedRow.id,
 					   	success: function(data) {
 					   		_init();
 							_load();
@@ -128,7 +128,7 @@
 					$.ajax({ 
 					   type: "GET",
 					   dataType: "json",
-					   url: "http://localhost:8080/personas/nombre/" + $('#tbx_search').val(),
+					   url: "http://" + server + "/personas/nombre/" + $('#tbx_search').val(),
 					   success: function(data) {
 						   console.log(JSON.stringify(data));
 						   $('#table').bootstrapTable("destroy");
